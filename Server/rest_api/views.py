@@ -1,8 +1,8 @@
 # from django.shortcuts import render
 # from rest_framework.parsers import JSONParser
 # from django.http import HttpResponse,JsonResponse
-from .models import Vehicle
-from .serializer import VehicleSerializer
+from .models import Measurement, Vehicle
+from .serializer import MeasurementSerializer, VehicleSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
@@ -32,3 +32,16 @@ class VehicleAPIView(APIView):
         else:
             print("NOT VALID")
         return Response({"OK"})
+
+class VehicleDataAPIView(APIView):
+
+    def get(self, request):
+        data = Measurement.objects.all()
+        serializer = MeasurementSerializer(data,many = True) 
+        return Response(serializer.data)
+        
+    def post(self, request):
+        serializer = MeasurementSerializer(data = request.data, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)

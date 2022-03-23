@@ -9,23 +9,29 @@ class Sender(Thread):
         self.write_on_file = False
     
     def run(self):
-        with open("buffer.txt","w") as f:
+        with open("buffer.txt","a") as f:
             while True:
                 try:
-                    current_data = {
-                        "values" : [self.queue.get()] #take a dictionary containing data
-                    }
+                    current_data = self.queue.get() #take a dictionary containing data
+                    print("PRENDO DATI")
                     if not self.write_on_file:
-                        response = requests.post("http://localhost:8080",json=current_data,timeout=3) #post it to the server (dict to json encoding is done internally)
+                        print("INIZIO INVIO DATI")
+                        response = requests.post("http://localhost:8000/rest_api/VehicleData",json=current_data,timeout=3) #post it to the server (dict to json encoding is done internally)
+                        print("DATI INVIATI")
                         dict = response.json() #decode data from json to python dictionary
+                        print(f"RESPONSE:{response}")
                         if response.status_code != 200:
                             self.write_on_file = True
                             f.write(json.dumps(current_data)) # list to JSON String
                             f.write('\n')
                     else:
-                        f.write(json.dumps(current_data)) # list to JSON String
-                        f.write('\n')
-                except:
+                        dump = json.dumps(current_data)
+                        f.write(dump) # list to JSON String
+                        f.write("\n")
+                        f.flush()
+                        print("finisco di scrivere su file")
+                except Exception as e:
+                    print(e)
                     self.write_on_file = True
 
 

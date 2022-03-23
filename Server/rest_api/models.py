@@ -1,4 +1,3 @@
-from subprocess import check_output
 from django.db import models
 
 class Vehicle(models.Model):
@@ -13,8 +12,8 @@ class Measurement(models.Model):
 
     #enum types
     class Sensors(models.TextChoices):
-        RPM = "RPM"
-        SPEED = "SPEED"
+        RPM = "rpm"
+        SPEED = "speed"
         COOLANT_TEMPERATURE = "coolant_temperature"
         THROTTLE_POSITION = "throttle_position"
         FUEL_LEVEL = "fuel_level"

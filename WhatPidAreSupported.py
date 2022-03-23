@@ -1,0 +1,18 @@
+import serial
+
+ser = serial.Serial(port = "/dev/ttyUSB0", baudrate = 38400)
+ser.write(b"0100\r\r")
+resp = ser.read_until(expected=b'\r\r>')
+print(resp)
+ser.write(b"0120\r\r")
+resp = ser.read_until(expected=b'\r\r>')
+print(resp)
+ser.write(b"0140\r\r")
+resp = ser.read_until(expected=b'\r\r>')
+print(resp)
+ser.write(b"0160\r\r")
+resp = ser.read_until(expected=b'\r\r>')
+print(resp)
+ser.write(b"0180\r\r")
+resp = ser.read_until(expected=b'\r\r>')
+print(resp)
