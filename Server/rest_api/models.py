@@ -18,6 +18,10 @@ class Measurement(models.Model):
         THROTTLE_POSITION = "throttle_position"
         FUEL_LEVEL = "fuel_level"
         ENGINE_OIL_TEMPERATURE = "engine_oil_temperature"
+        ENGINE_LOAD = "engine_load"
+        ENGINE_FUEL_GAUGE = "fuel_rail_gauge"
+        INTAKE_AIR_TEMPERATURE = "intake_air_temperature"
+        INTAKE_MANIFOLD_PRESSURE = "intake_manifold_pressure"
     
     
     #pk created by default as auto-increment value

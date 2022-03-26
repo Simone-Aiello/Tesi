@@ -96,6 +96,50 @@ class OBD2Interface:
             pass
         return temp
 
+    def get_calculated_engine_load(self):
+        resp = self.__readValue("0104")
+        el = None
+        try:
+            values = self.__parse_response(resp,expected_values=1)
+            a = int(values["A"],16)
+            el = int(a/2.55)
+        except:
+            pass
+        return el
+
+    def get_intake_manifold_absolute_pressure(self):
+        resp = self.__readValue("010B")
+        itk = None
+        try:
+            values = self.__parse_response(resp,expected_values=1)
+            itk = int(values["A"],16)
+        except:
+            pass
+        return itk
+    
+    def get_intake_air_temperature(self):
+        resp = self.__readValue("010F")
+        air = None
+        try:
+            values = self.__parse_response(resp,expected_values=1)
+            a = int(values["A"],16)
+            air = a - 40
+        except:
+            pass
+        return air
+
+    def get_fuel_rail_guage_pressure(self):
+        resp = self.__readValue("0123")
+        fr = None
+        try:
+            values = self.__parse_response(resp,expected_values=2)
+            a = int(values["A"],16)
+            b = int(values["B"],16)
+            fr = 10*(256*a + b)
+        except:
+            pass
+        return fr
+
 # delay = 0.1
 # with open("values.txt","a") as f:
 #     s = OBD2Interface("/dev/ttyUSB0",38400,3)
