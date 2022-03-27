@@ -1,6 +1,3 @@
-# from django.shortcuts import render
-# from rest_framework.parsers import JSONParser
-# from django.http import HttpResponse,JsonResponse
 from .models import Measurement, Vehicle
 from .serializer import MeasurementSerializer, VehicleSerializer
 from rest_framework.response import Response
