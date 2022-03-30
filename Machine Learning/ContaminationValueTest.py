@@ -79,58 +79,62 @@ plt.savefig("test_scatter")
 plt.clf()
 
 #Machine learning model: Isolation Forest
-contamination = 0.04
-model = IsolationForest(contamination=contamination, max_features=x_train.shape[1])
+contaminations = np.arange(0.01,0.07,0.01)
+print(contaminations)
+for contamination in contaminations:
+    if contamination > 0.06:
+        contamination = 0.06
+    model = IsolationForest(contamination=contamination, max_features=x_train.shape[1])
 
-#Training the model with train data
-model.fit(x_train.to_numpy())
-anomaly_score_training = model.decision_function(x_train.to_numpy())
-training_prediction = model.predict(x_train.to_numpy())
-training_result = np.add(training_prediction,y_train)
+    #Training the model with train data
+    model.fit(x_train.to_numpy())
+    anomaly_score_training = model.decision_function(x_train.to_numpy())
+    training_prediction = model.predict(x_train.to_numpy())
+    training_result = np.add(training_prediction,y_train)
 
 
-#Plotting training heatmap
-anomaly_train_plot = plt.scatter(x_train['rpm'], x_train['speed'], c = -1*anomaly_score_training, cmap = 'coolwarm')
-plt.colorbar(anomaly_train_plot,label = 'More Red = More Anomalous')
-plt.xlabel('RPM', fontsize = 12)
-plt.ylabel('Speed', fontsize = 12)
-plt.grid()
-plt.savefig(f"heatmap_train_contamination_{contamination}.png")
-plt.clf()
+    #Plotting training heatmap
+    anomaly_train_plot = plt.scatter(x_train['rpm'], x_train['speed'], c = -1*anomaly_score_training, cmap = 'coolwarm')
+    plt.colorbar(anomaly_train_plot,label = 'More Red = More Anomalous')
+    plt.xlabel('RPM', fontsize = 12)
+    plt.ylabel('Speed', fontsize = 12)
+    plt.grid()
+    plt.savefig(f"Contamination_{contamination}/heatmap_train_contamination_{contamination}.png")
+    plt.clf()
 
-#Plotting training prediction
-prediction_plot = plt.scatter(x_train['rpm'], x_train['speed'], c = -1*training_prediction, cmap = 'coolwarm')
-plt.colorbar(prediction_plot,label = 'More Red = More Anomalous')
-plt.xlabel('RPM', fontsize = 14)
-plt.ylabel('Speed', fontsize = 14)
-plt.grid()
-plt.title(f'Contamination = {contamination}, Accuracy ={round(list(training_result).count(0)/len(training_result),3)}', weight = 'bold')
-plt.savefig(f"prediction_train_contamination_{contamination}.png")
-plt.clf()
+    #Plotting training prediction
+    prediction_plot = plt.scatter(x_train['rpm'], x_train['speed'], c = -1*training_prediction, cmap = 'coolwarm')
+    plt.colorbar(prediction_plot,label = 'More Red = More Anomalous')
+    plt.xlabel('RPM', fontsize = 14)
+    plt.ylabel('Speed', fontsize = 14)
+    plt.grid()
+    plt.title(f'Contamination = {contamination}, Accuracy ={round(list(training_result).count(0)/len(training_result),3)}', weight = 'bold')
+    plt.savefig(f"Contamination_{contamination}/prediction_train_contamination_{contamination}.png")
+    plt.clf()
 
-#Testing the accuracy of the model on data unseen before
-anomaly_score_test = model.decision_function(x_test.to_numpy())
-test_prediction = model.predict(x_test.to_numpy())
-test_result = np.add(test_prediction,y_test)
+    #Testing the accuracy of the model on data unseen before
+    anomaly_score_test = model.decision_function(x_test.to_numpy())
+    test_prediction = model.predict(x_test.to_numpy())
+    test_result = np.add(test_prediction,y_test)
 
-#Plotting test heatmap
-anomaly_test_plot = plt.scatter(x_test['rpm'], x_test['speed'], c = -1*anomaly_score_test, cmap = 'coolwarm')
-plt.colorbar(anomaly_test_plot,label = 'More Red = More Anomalous')
-plt.xlabel('RPM', fontsize = 12)
-plt.ylabel('Speed', fontsize = 12)
-plt.grid()
-plt.savefig(f"heatmap_test_contamination_{contamination}.png")
-plt.clf()
+    #Plotting test heatmap
+    anomaly_test_plot = plt.scatter(x_test['rpm'], x_test['speed'], c = -1*anomaly_score_test, cmap = 'coolwarm')
+    plt.colorbar(anomaly_test_plot,label = 'More Red = More Anomalous')
+    plt.xlabel('RPM', fontsize = 12)
+    plt.ylabel('Speed', fontsize = 12)
+    plt.grid()
+    plt.savefig(f"Contamination_{contamination}/heatmap_test_contamination_{contamination}.png")
+    plt.clf()
 
-#Plotting test prediction
-test_prediction_plot = plt.scatter(x_test['rpm'], x_test['speed'], c = -1*test_prediction, cmap = 'coolwarm')
-plt.colorbar(test_prediction_plot,label = 'More Red = More Anomalous')
-plt.xlabel('RPM', fontsize = 14)
-plt.ylabel('Speed', fontsize = 14)
-plt.grid()
-plt.title(f'Contamination = {contamination}, Accuracy ={round(list(test_result).count(0)/len(test_result),3)}', weight = 'bold')
-plt.savefig(f"prediction_test_contamination_{contamination}.png")
-plt.clf()
+    #Plotting test prediction
+    test_prediction_plot = plt.scatter(x_test['rpm'], x_test['speed'], c = -1*test_prediction, cmap = 'coolwarm')
+    plt.colorbar(test_prediction_plot,label = 'More Red = More Anomalous')
+    plt.xlabel('RPM', fontsize = 14)
+    plt.ylabel('Speed', fontsize = 14)
+    plt.grid()
+    plt.title(f'Contamination = {contamination}, Accuracy ={round(list(test_result).count(0)/len(test_result),3)}', weight = 'bold')
+    plt.savefig(f"Contamination_{contamination}/prediction_test_contamination_{contamination}.png")
+    plt.clf()
 
 
 # Get Anomaly Scores and Predictions
