@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from queue import Queue
 from threading import Thread
 from OBD2Interface import OBD2Interface
 import time
@@ -58,3 +59,8 @@ class Reader(Thread):
             self.__add_data(current_data,'intake_manifold_pressure',intake_manifold)      
             self.queue.put(current_data)
             #print(json.dumps(current_data))
+
+
+if __name__ == '__main__':
+    r = Reader(Queue())
+    r.start()

@@ -9,56 +9,18 @@ class Sender(Thread):
         self.write_on_file = False
     
     def run(self):
-        with open("buffer.txt","a") as f:
-            while True:
-                try:
-                    current_data = self.queue.get() #take a dictionary containing data
-                    print("PRENDO DATI")
-                    if not self.write_on_file:
-                        print("INIZIO INVIO DATI")
-                        response = requests.post("http://localhost:8000/rest_api/VehicleData",json=current_data,timeout=3) #post it to the server (dict to json encoding is done internally)
-                        print("DATI INVIATI")
-                        dict = response.json() #decode data from json to python dictionary
-                        print(f"RESPONSE:{response}")
-                        if response.status_code != 200:
-                            self.write_on_file = True
-                            f.write(json.dumps(current_data)) # list to JSON String
-                            f.write('\n')
-                    else:
-                        dump = json.dumps(current_data)
-                        f.write(dump) # list to JSON String
-                        f.write("\n")
-                        f.flush()
-                        print("finisco di scrivere su file")
-                except Exception as e:
-                    print(e)
-                    self.write_on_file = True
+        while True:
+            #Take a dictionary containing data
+            current_data = self.queue.get() 
+            #Post data to the server (dict to json encoding is done internally)
+            response = requests.post("http://localhost:8000/rest_api/VehicleData",json=current_data,timeout=3) 
 
 
 
-# {
-#     "speed" : {
-#         "data": int,
-#         "timestamp": float
-#     },
-#     "rpm" : {
-#         "data": int,
-#         "timestamp": float
-#     },
-#     "coolant_temperature" : {
-#         "data": int,
-#         "timestamp": float
-#     },
-#     "throttle_position" : {
-#         "data": int,
-#         "timestamp": float
-#     },
-#     "fuel_level" : {
-#         "data": int,
-#         "timestamp": float
-#     },
-#     "engine_oil_temperature" : {
-#         "data": int,
-#         "timestamp": float                    
-#     },
-# }
+# [{'vehicle': 'FG868XN', 'sensor': 'speed', 'data': 3, 'timestamp': '2022-04-21 14:21:27'},
+# {'vehicle': 'FG868XN', 'sensor': 'rpm', 'data': 800, 'timestamp': '2022-04-21 14:21:27'},
+# {'vehicle': 'FG868XN', 'sensor': 'coolant_temperature', 'data': 80, 'timestamp': '2022-04-21 14:21:27'},
+# {'vehicle': 'FG868XN', 'sensor': 'throttle_position', 'data': 30, 'timestamp': '2022-04-21 14:21:27'},
+# {'vehicle': 'FG868XN', 'sensor': 'fuel_level', 'data': 40, 'timestamp': '2022-04-21 14:21:27'},
+# {'vehicle': 'FG868XN', 'sensor': 'engine_oil_temperature', 'data': 50, 'timestamp': '2022-04-21 14:21:27'}]
+#'[{"vehicle": "FG868XN", "sensor": "speed", "data": 3, "timestamp": "2022-04-21 14:21:27"}]'

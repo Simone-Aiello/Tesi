@@ -1,22 +1,21 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.dates as dates
-import numpy as np
 from sklearn.ensemble import IsolationForest
 from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import confusion_matrix
+from sklearn.metrics import confusion_matrix,roc_curve, auc
 from mlxtend.plotting import plot_decision_regions
 import seaborn as sns
-
+import joblib
 SEED = 3
 
 def train_isolation_forest(x_train,x_test,y_train,y_test):
-    contamination = 0.06
+    contamination = 0.04
     model = IsolationForest(contamination=contamination, max_features=x_train.shape[1])
 
     #Training the model with train data
     model.fit(x_train.to_numpy())
+    joblib.dump(model,"isolation_forest.pkl",compress=9)
     print(type(model.estimators_[0]))
     anomaly_score_training = model.decision_function(x_train.to_numpy())
     training_prediction = model.predict(x_train.to_numpy())
@@ -28,7 +27,7 @@ def train_isolation_forest(x_train,x_test,y_train,y_test):
     plt.xlabel('RPM', fontsize = 12)
     plt.ylabel('Speed', fontsize = 12)
     plt.grid()
-    #plt.savefig(f"heatmap_train_contamination_{contamination}.png")
+    plt.savefig(f"heatmap_train_contamination_{contamination}.png")
     plt.clf()
 
     #Plotting training prediction
@@ -38,7 +37,7 @@ def train_isolation_forest(x_train,x_test,y_train,y_test):
     plt.ylabel('Speed', fontsize = 14)
     plt.grid()
     plt.title(f'Contamination = {contamination}', weight = 'bold')
-    #plt.savefig(f"prediction_train_contamination_{contamination}.png")
+    plt.savefig(f"prediction_train_contamination_{contamination}.png")
     plt.clf()
 
     #Testing the accuracy of the model on data unseen before
@@ -51,7 +50,7 @@ def train_isolation_forest(x_train,x_test,y_train,y_test):
     plt.xlabel('RPM', fontsize = 12)
     plt.ylabel('Speed', fontsize = 12)
     plt.grid()
-    #plt.savefig(f"heatmap_test_contamination_{contamination}.png")
+    plt.savefig(f"heatmap_test_contamination_{contamination}.png")
     plt.clf()
 
     #Plotting test prediction
@@ -61,7 +60,7 @@ def train_isolation_forest(x_train,x_test,y_train,y_test):
     plt.ylabel('Speed', fontsize = 14)
     plt.grid()
     plt.title(f'Contamination = {contamination}', weight = 'bold')
-    #plt.savefig(f"prediction_test_contamination_{contamination}.png")
+    plt.savefig(f"prediction_test_contamination_{contamination}.png")
     plt.clf()
 
     #Evaluating accuracy of the model
@@ -76,12 +75,16 @@ def train_isolation_forest(x_train,x_test,y_train,y_test):
     rows = ["Actual not anomalous","Actual anomalous"]
     training_confusion_matrix = pd.DataFrame(confusion_matrix(y_true=y_train,y_pred=training_prediction),columns=columns,index=rows)
     sns.heatmap(training_confusion_matrix,annot=True,fmt='d',cmap="gist_gray_r",cbar=False).set(title="Training result")
-    #plt.savefig(f"training_confusion_matrix_{contamination}.png")
+    plt.savefig(f"training_confusion_matrix_{contamination}.png")
     plt.clf()
     testing_confusion_matrix = pd.DataFrame(confusion_matrix(y_true=y_test,y_pred=test_prediction),columns=columns,index=rows)
     sns.heatmap(testing_confusion_matrix,annot=True,fmt='d',cmap="gist_gray_r",cbar=False).set(title="Testing result")
-    #plt.savefig(f"testing_confusion_matrix_{contamination}.png")
+    plt.savefig(f"testing_confusion_matrix_{contamination}.png")
 
+    #Calculating values for ROC curve
+    if_fpr, if_tpr, threshold = roc_curve(y_test,test_prediction)
+    auc_if = auc(if_fpr,if_tpr)
+    return (if_fpr, if_tpr, auc_if)
 
 def train_svc(x_train,x_test,y_train,y_test):
 
@@ -89,6 +92,7 @@ def train_svc(x_train,x_test,y_train,y_test):
     gamma = 0.0001
     svm = SVC(kernel="rbf",gamma=gamma,random_state=SEED)
     svm.fit(x_train,y_train)
+    joblib.dump(svm,"svm.pkl",compress=9)
     hyperplane_distance = svm.decision_function(x_test)
     prediction = svm.predict(x_test)
     
@@ -112,8 +116,7 @@ def train_svc(x_train,x_test,y_train,y_test):
     plt.clf()
 
     #Plotting decision regions
-    #x_test = x_test.reindex(columns=["rpm","speed"])
-    ax = plot_decision_regions(x_test.to_numpy(), y_test.to_numpy(), clf=svm, legend=2)
+    ax = plot_decision_regions(x_train.to_numpy(), y_train.to_numpy(), clf=svm, legend=2)
     plt.xlabel('Speed')
     plt.ylabel('RPM')
     plt.title(f"Gamma = {gamma}",weight="bold")
@@ -127,6 +130,11 @@ def train_svc(x_train,x_test,y_train,y_test):
     testing_confusion_matrix = pd.DataFrame(confusion_matrix(y_true=y_test,y_pred=prediction),columns=columns,index=rows)
     sns.heatmap(testing_confusion_matrix,annot=True,fmt='d',cmap="gist_gray_r",cbar=False).set(title="Testing result")
     plt.savefig(f"SVM/Gamma_{gamma}/testing_confusion_matrix_{gamma}.png")
+
+    #Calculating values for ROC curve
+    svm_fpr, svm_trp, threshold = roc_curve(y_test, prediction)
+    auc_svm = auc(svm_fpr,svm_trp)
+    return (svm_fpr, svm_trp, auc_svm)
 
 #Plotting starting dataset
 starting_speed = pd.read_csv("speed.csv")
@@ -152,7 +160,6 @@ columns_names = ["timestamp","speed","rpm","is_anomalous"]
 rpm_speed_df = pd.merge(rpm_df,speed_df,on="timestamp")
 rpm_speed_df = rpm_speed_df.rename(columns={"anomaly" : "is_anomalous"})
 rpm_speed_df = rpm_speed_df.reindex(columns=columns_names)
-#ax.set_xlim([-100, 4000])
 
 #Plotting dataset containing anomalies
 plt.xlabel('RPM', fontsize = 12)
@@ -181,8 +188,25 @@ plt.scatter(x_test["rpm"],x_test["speed"],c=y_test,cmap='coolwarm')
 plt.savefig("test_scatter")
 plt.clf()
 
-#train_isolation_forest(x_train,x_test,y_train,y_test)
-train_svc(x_train,x_test,y_train,y_test)
+ifRoc = train_isolation_forest(x_train,x_test,y_train,y_test)
+svcRoc = train_svc(x_train,x_test,y_train,y_test)
+
+#Plotting ROC curve with AUC
+plt.clf()
+plt.plot(svcRoc[0],svcRoc[1],linestyle='-',label="SVM (auc = %0.3f)" % svcRoc[2])
+plt.plot(ifRoc[0],ifRoc[1],marker='.',label="IF (auc = %0.3f)" % ifRoc[2])
+bisector = ([0,1],[0,1])
+plt.plot(bisector[0],bisector[1],'0.8',linestyle='--')
+plt.legend()
+plt.xlabel("False Positive Rate")
+plt.ylabel("True positive Rate")
+plt.savefig("ROC")
+
+
+
+
+
+
 #Machine learning model: Isolation Forest
 # contamination = 0.06
 # model = IsolationForest(contamination=contamination, max_features=x_train.shape[1])
