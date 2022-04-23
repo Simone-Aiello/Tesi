@@ -104,6 +104,9 @@ class VehicleDataAPIView(APIView):
         serializer = MeasurementSerializer(data = request.data, many=True)
         serializer.is_valid(raise_exception=True)
         #self.__checkRpmSpeedAnomalous(serializer.data)
-        self.__updateWheelModel(serializer.data)
+        try:
+            self.__updateWheelModel(serializer.data)
+        except ValueError as e:
+            return Response(e,status=status.HTTP_400_BAD_REQUEST)
         #serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
