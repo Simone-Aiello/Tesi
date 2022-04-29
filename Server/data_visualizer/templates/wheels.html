@@ -1,0 +1,13 @@
+<head>
+    {% load static %}
+    <script src = "https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src = "{% static 'javascript/wheels/wheels.js' %}"></script>
+</head>
+<body>
+    <div>
+        <canvas id="wheel-chart"></canvas>
+        <p>Start date: <input id = "start-date" type="date"></p>
+        <p>End date: <input id = "end-date" type="date"></p>
+    </div>
+</body>

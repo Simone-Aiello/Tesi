@@ -1,7 +1,6 @@
-# from django.shortcuts import render
-# from rest_framework.parsers import JSONParser
-# from django.http import HttpResponse,JsonResponse
 from datetime import datetime
+from django.http import HttpRequest
+from django.db.models import Q
 from sklearn.svm import SVC
 from .models import Measurement, Vehicle
 from .serializer import MeasurementSerializer, VehicleSerializer
@@ -32,10 +31,9 @@ class VehicleAPIView(APIView):
     def post(self, request):
         serializer = VehicleSerializer(data=request.data,many=True)
         if serializer.is_valid():
-            print(serializer.data)
+            return Response({"OK"})
         else:
-            print("NOT VALID")
-        return Response({"OK"})
+            return Response({"Invalid data"})
 
 class VehicleDataAPIView(APIView):
 
@@ -55,8 +53,8 @@ class VehicleDataAPIView(APIView):
             model = joblib.load("ml_models/isolation_forest.pkl")
             df = pd.DataFrame({"speed":[speed],"rpm":[rpm]})
             prediction = model.predict(df)
-            data[idx_speed]["anomalous"] = 1 if prediction == -1 else 0
-            data[idx_rpm]["anomalous"] = 1 if prediction == -1 else 0 
+            data[idx_speed]["anomalous"] = True if prediction == -1 else False
+            data[idx_rpm]["anomalous"] = True if prediction == -1 else False
 
 
     def __trainWheelModel(self,measurement,model : LinearRegression):
@@ -95,18 +93,53 @@ class VehicleDataAPIView(APIView):
                 self.__trainWheelModel(m,model)
                 #joblib.dump(value=model,filename=filename,compress=9)
 
-    def get(self, request):
-        data = Measurement.objects.all()
+    def get(self, request : HttpRequest):
+        requested_sensors = request.GET.getlist("sensor[]")
+        requested_vehicle = request.GET.get("vehicle")
+        start_date = request.GET.get("start_date",None)
+        end_date = request.GET.get("end_date",None)
+        query = Q()
+        query &= Q(sensor__in=requested_sensors,vehicle=requested_vehicle)
+        if start_date != "":
+            query &= Q(timestamp__gte=start_date)
+        if end_date != "":
+            query &= Q(timestamp__lte=end_date)
+        #data = Measurement.objects.all().filter(sensor__in=requested_sensors,vehicle=requested_vehicle)
+        data = Measurement.objects.filter(query)
         serializer = MeasurementSerializer(data,many = True) 
         return Response(serializer.data)
         
-    def post(self, request):
-        serializer = MeasurementSerializer(data = request.data, many=True)
-        serializer.is_valid(raise_exception=True)
-        #self.__checkRpmSpeedAnomalous(serializer.data)
+    def post(self, request):# TODO QUESTA POST VA MESSA IN UN'API A PARTE
         try:
+            self.__checkRpmSpeedAnomalous(request.data)
+            serializer = MeasurementSerializer(data = request.data, many=True)
+            serializer.is_valid(raise_exception=True)
             self.__updateWheelModel(serializer.data)
         except ValueError as e:
             return Response(e,status=status.HTTP_400_BAD_REQUEST)
-        #serializer.save()
+        serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+class WheelApiView(APIView):
+    
+    #If license_plate is specified as a GET parameters return only one vehicle, otherwise returns all
+    def get(self, request : HttpRequest):
+        max_bar = 2.6 #TODO Da mettere nel database
+        sensor = request.GET.get("sensor")
+
+        #Getting data from the db since the last wheel inflate
+        data = Measurement.objects.all().filter(sensor=sensor)
+        res = Measurement.objects.filter(data=max_bar,sensor=sensor).values().latest("timestamp")
+        last_id = res["id"]
+        all_data = Measurement.objects.filter(sensor=sensor,id__gte=last_id)
+        serializer = MeasurementSerializer(all_data,many=True)
+
+        #Loading the Linear regression model to get line equation
+
+
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+    def post(self, request):
+        pass
