@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<head>
+    {% load static %}
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="{% static 'css/3dmodel.css' %}">
+    <!--<script src = "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.js" integrity="sha512-NLtnLBS9Q2w7GKK9rKxdtgL7rA7CAS85uC/0xd9im4J/yOL4F9ZVlv634NAM7run8hz3wI2GabaA6vv8vJtHiQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/89/three.min.js"></script>-->
+    
+    <script>
+        var texture = "{% static '3DScene/venice_sunset_1k.hdr' %}"
+        var car_gltf = "{% static '3DScene/ferrari_458/scene.gltf' %}"
+    </script>
+    <script src = "{% static 'javascript/3dmodel/three.min.js' %}"></script>
+    <script src = "{% static 'javascript/3dmodel/OrbitControls.js' %}"></script>
+    <script src = "{% static 'javascript/3dmodel/stats.min.js' %}"></script>
+    <script src = "{% static 'javascript/3dmodel/GLTFLoader.js' %}"></script>
+    <script src = "{% static 'javascript/3dmodel/DRACOLoader.js' %}"></script>
+    <script src = "{% static 'javascript/3dmodel/RGBELoader.js' %}"></script>
+    <script src = "{% static 'javascript/3dmodel/car.js' %}"></script>
+</head>
+<body id="test">
+    <div id="container"></div>
+    <div class="tooltip">
+        <div class="tooltiptext">
+            <ul>
+                <li id = "sensor_name"></li>
+                <li id = "value"></li>
+                <li id = "date"></li>
+            </ul>
+        </div>
+      </div>
+</body>

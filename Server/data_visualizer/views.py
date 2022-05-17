@@ -11,3 +11,8 @@ class WheelDataVisualizer(View):
 
     def get(self,request):
         return render(request=request,template_name="wheels.html")
+
+class Car3DVisualizer(View):
+
+    def get(self,request):
+        return render(request=request,template_name="car_model.html")

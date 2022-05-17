@@ -1,6 +1,8 @@
-from datetime import datetime
-from django.http import HttpRequest
+from datetime import date, datetime
+import time
+from django.http import HttpRequest,JsonResponse
 from django.db.models import Q
+import numpy as np
 from sklearn.svm import SVC
 from .models import Measurement, Vehicle
 from .serializer import MeasurementSerializer, VehicleSerializer
@@ -57,19 +59,19 @@ class VehicleDataAPIView(APIView):
             data[idx_rpm]["anomalous"] = True if prediction == -1 else False
 
 
-    def __trainWheelModel(self,measurement,model : LinearRegression):
+    def __trainWheelModel(self,measurement,model : LinearRegression) -> LinearRegression:
         #Optimal bar for (some) car tyres
         max_bar = 2.6 # TODO Da inserire nel database
         measurement['data'] = float(measurement['data'])
         training_data = [measurement['data']]
         training_timestamp = [datetime.strptime(measurement['timestamp'],"%Y-%m-%dT%H:%M:%SZ").date().toordinal()]
         if measurement['data'] > max_bar:
-            raise ValueError("Data values exceeded max") #TODO Da modificare
+            raise ValueError("Data values exceeded max_bar") #TODO Da modificare
         if(measurement['data'] == max_bar):
             model = LinearRegression()
         else:
             try:
-                res = Measurement.objects.filter(data=max_bar,sensor=measurement["sensor"],vehicle=measurement["vehicle"]).values().latest("timestamp")
+                res = Measurement.objects.filter(data=max_bar,sensor=measurement["sensor"],vehicle=measurement["vehicle"]).values().latest("timestamp","id")
                 last_id = res["id"]
                 all_data = Measurement.objects.filter(sensor=measurement["sensor"],vehicle=measurement["vehicle"],id__gte=last_id)
                 for d in all_data:
@@ -77,35 +79,35 @@ class VehicleDataAPIView(APIView):
                    training_timestamp.append(d.timestamp.date().toordinal())
             except Measurement.DoesNotExist:
                 print("Exception")
-        print(training_data)
-        print(training_timestamp)
         df_values = pd.DataFrame(data={"values":training_data})
         df_timestamp = pd.DataFrame(data={"timestamp":training_timestamp})
-        print(df_timestamp.head())
         model.fit(df_values,df_timestamp)
-
+        return model
     def __updateWheelModel(self,data):
         wheel_sensor_name = ('front_right_wheel_pressure','front_left_wheel_pressure','rear_right_wheel_pressure','rear_left_wheel_pressure')
         for m in data:
             if m['sensor'] in wheel_sensor_name:
                 filename = f"ml_models/wheels/{m['sensor']}.pkl"
-                model : LinearRegression = joblib.load(filename)
-                self.__trainWheelModel(m,model)
-                #joblib.dump(value=model,filename=filename,compress=9)
+                model = self.__trainWheelModel(m,joblib.load(filename))
+                joblib.dump(value=model,filename=filename,compress=9)
 
     def get(self, request : HttpRequest):
+        #print(request.GET)
         requested_sensors = request.GET.getlist("sensor[]")
         requested_vehicle = request.GET.get("vehicle")
-        start_date = request.GET.get("start_date",None)
-        end_date = request.GET.get("end_date",None)
+        start_date = request.GET.get("start_date","")
+        end_date = request.GET.get("end_date","")
+        latest = request.GET.get("latest",False)
         query = Q()
         query &= Q(sensor__in=requested_sensors,vehicle=requested_vehicle)
         if start_date != "":
             query &= Q(timestamp__gte=start_date)
         if end_date != "":
             query &= Q(timestamp__lte=end_date)
-        #data = Measurement.objects.all().filter(sensor__in=requested_sensors,vehicle=requested_vehicle)
         data = Measurement.objects.filter(query)
+        if latest and len(requested_sensors) == 1:
+            data = data.values().latest("timestamp")
+            return JsonResponse(data)
         serializer = MeasurementSerializer(data,many = True) 
         return Response(serializer.data)
         
@@ -122,24 +124,42 @@ class VehicleDataAPIView(APIView):
 
 class WheelApiView(APIView):
     
-    #If license_plate is specified as a GET parameters return only one vehicle, otherwise returns all
+
+    def __calculate_line_points(self,max_bar,slope,intercept):
+        points = []
+        for i in np.arange(0.0,max_bar + 0.5,0.2):
+            y = (slope * i) + intercept
+            date_y =  date.fromordinal(int(y))
+            string_y = date_y.strftime("%Y-%m-%dT%H:%M:%SZ")
+            points.append({
+                "x" : round(i,2),
+                "y" : string_y,
+            })
+        return points
+
+
+
+
     def get(self, request : HttpRequest):
         max_bar = 2.6 #TODO Da mettere nel database
-        sensor = request.GET.get("sensor")
-
+        line_points = []
+        sensor = request.GET.get("wheel",None)
+        if(sensor not in ("front_right_wheel_pressure","front_left_wheel_pressure","rear_right_wheel_pressure","rear_left_wheel_pressure")):
+            return Response("Missing sensor",status=status.HTTP_400_BAD_REQUEST)
+        
         #Getting data from the db since the last wheel inflate
-        data = Measurement.objects.all().filter(sensor=sensor)
-        res = Measurement.objects.filter(data=max_bar,sensor=sensor).values().latest("timestamp")
-        last_id = res["id"]
-        all_data = Measurement.objects.filter(sensor=sensor,id__gte=last_id)
-        serializer = MeasurementSerializer(all_data,many=True)
+        try:
+            res = Measurement.objects.filter(data=max_bar,sensor=sensor).values().latest("timestamp","id")
+            last_id = res["id"]
+            all_data = Measurement.objects.filter(sensor=sensor,id__gte=last_id)
+            serializer = MeasurementSerializer(all_data,many=True)
+        except Measurement.DoesNotExist:
+            return Response({"data":[]},status=status.HTTP_200_OK)
 
-        #Loading the Linear regression model to get line equation
-
-
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    
-    def post(self, request):
-        pass
+        
+        #Loading the Linear regression model to get line equation if data points >= 2
+        if len(all_data) >= 2:
+            filename = f"ml_models/wheels/{sensor}.pkl"
+            model : LinearRegression = joblib.load(filename)
+            line_points = self.__calculate_line_points(max_bar=max_bar,slope=model.coef_[0][0],intercept=model.intercept_[0])
+        return Response({"data": serializer.data,"line_points":line_points}, status=status.HTTP_200_OK)
