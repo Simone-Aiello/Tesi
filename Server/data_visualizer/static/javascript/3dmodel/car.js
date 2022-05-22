@@ -1,68 +1,75 @@
 let camera, scene, renderer;
-let stats;
+//let stats;
 let grid;
 let controls;
 const wheels = [];
+const materials ={};
+let latestUpdate = {};
 var carModel = undefined;
 var raycaster = new THREE.Raycaster();
 var mousePointer = new THREE.Vector2();
 function capitalizeFirstLetter(string) {
 	return string.charAt(0).toUpperCase() + string.slice(1);
 }
-function loadData(match,clientX,clientY){
-	console.log(match)
-    $.ajax({
-        'url': '/rest_api/VehicleData',
-        'type': 'GET',
-        'data': {
-            vehicle: "FG868XN",
-            sensor: [match[1]+"_"+match[2]+"_wheel_pressure"],
-			latest: true,
-        },
-        'success': function (data) {
-			console.log(data)
-			$(".tooltiptext").css({
-				"display": "initial",
-				"opacity": "1",
-				"top": clientY - $(".tooltiptext").outerHeight(true),
-				"left" : clientX - 12,
-			});
-			$("#sensor_name").text("Sensor: " + capitalizeFirstLetter(match[1]) + " " + match[2] + " tire pressure");
-			$("li#value").text("Value: " + data.data);
-			$("li#date").text("Date: " + data.timestamp.split("T")[0]);
-        },
-        'error': function (request, error) {
-            console.log("Error reading data");
-        }
-    });
+function loadDataOnInterval(){
+	sensors = ["front_left_wheel_pressure","front_right_wheel_pressure","rear_left_wheel_pressure","rear_right_wheel_pressure"];
+	$.ajax({
+		'url': '/rest_api/LatestValues',
+		'type': 'GET',
+		'data': {
+			sensor: sensors,
+		},
+		'success': function (data) {
+			latestUpdate = data;
+			for (const [key, value] of Object.entries(data)) {
+				//Y : 2.6 = X : 0.08 
+				let r = 0.08-(parseFloat(value.data)*0.08)/2.6;
+				splitted = key.split("_");
+				carModel.getObjectByName(`${splitted[0]}_${splitted[1]}_tire`).material.color.setRGB(r,0,0);
+			}
+		},
+		'error': function (request, error) {
+			console.log("Error reading data");
+		}
+	});
 }
 function onMouseClicked(event){
-	$(".tooltiptext").css({
-		"display" : "none",
-		"opacity": "0",
-		"top": 0,
-		"left" : 0,
-	});
-	mousePointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
-	mousePointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-	raycaster.setFromCamera(mousePointer, camera );
+	//mousePointer.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	//mousePointer.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+	var rect = renderer.domElement.getBoundingClientRect();
+	mousePointer.x = ( ( event.clientX - rect.left ) / ( rect.width - rect.left ) ) * 2 - 1;
+	mousePointer.y = - ( ( event.clientY - rect.top ) / ( rect.bottom - rect.top) ) * 2 + 1;
+	raycaster.setFromCamera(mousePointer, camera);
+	// let h = new THREE.ArrowHelper(raycaster.ray.direction, raycaster.ray.origin, 300, 0xff0000);
+	// scene.add(h);
 	const intersects = raycaster.intersectObjects(scene.children);
-    //console.log(intersects)
 	for ( let i = 0; i < intersects.length; i ++ ) {
-		let match = intersects[i].object.name.match(/(front|rear)_(left|right)_(brake|rim|tire)/);
+		let match = intersects[i].object.name.match(/(front|rear)_(left|right)_(brake|rim|tire|disc)/);
 		if(match != null){
-			loadData(match,event.clientX,event.clientY);
-            break;
+			new_sensor_name = `${match[1]}_${match[2]}_wheel_pressure` 
+			if(new_sensor_name === wheel_sensor) break;
+			wheel_sensor = new_sensor_name;
+			title = capitalizeFirstLetter(wheel_sensor);
+			title = title.split("_").join(" ");
+			wheelChart.destroy();
+			wheelConfig.options.plugins.title.text = title;
+			wheelChart = new Chart($("#wheel-chart"), wheelConfig);
+			loadWheelData(wheelChart, true);
+			break;
 		}
-        else if(intersects[i].object.name !== ''){
-            break;
-        }
+		else if(intersects[i].object.name === "chassis"){
+			break;
+		}
 	}
 }
+var SpeedRpmChart = null;
+var wheelChart = null;
 function init() {
-	//Raycast to check intersection on click
 
-
+	SpeedRpmChart = new Chart($("#SpeedRpmChart"), SpeedRpmConfig);
+    loadData(SpeedRpmChart);
+	wheelChart = new Chart($("#wheel-chart"), wheelConfig);
+    loadWheelData(wheelChart, true);
 	//Boilerplate code to render the scene
 	const container = document.getElementById( 'container' );
 	container.addEventListener('click',onMouseClicked)
@@ -75,8 +82,8 @@ function init() {
 	renderer.toneMappingExposure = 0.85;
 	container.appendChild( renderer.domElement );
 	window.addEventListener( 'resize', onWindowResize );
-	stats = new Stats();
-	container.appendChild( stats.dom );
+	//stats = new Stats();
+	//container.appendChild( stats.dom );
 	//Adding camera
 	camera = new THREE.PerspectiveCamera( 40, window.innerWidth / window.innerHeight, 0.1, 100 );
     camera.position.set( 0, 4,10);
@@ -109,7 +116,6 @@ function init() {
     
     scene.add( grid );
 
-
 	// Car
 	const dracoLoader = new THREE.DRACOLoader();
 	dracoLoader.setDecoderPath( 'js/libs/draco/gltf/' );
@@ -118,55 +124,25 @@ function init() {
 	loader.load(car_gltf, function ( gltf ) {
 		
 		carModel = gltf.scene;
-        //console.log(carModel.getObjectByName('chassis'));
-		//carModel.getObjectByName('chassis')
         wheels.push(carModel.getObjectByName('rear_left_rim'))
         wheels.push(carModel.getObjectByName('rear_right_rim'))
         wheels.push(carModel.getObjectByName('front_left_rim'))
         wheels.push(carModel.getObjectByName('front_right_rim'))
-		const detailsMaterial = new THREE.MeshStandardMaterial( {
-			color: 0xFF0000, metalness: 1.0, roughness: 0.5
-		});
 		carModel.getObjectByName('rear_left_tire').material = carModel.getObjectByName('rear_left_tire').material.clone();
-		carModel.getObjectByName('rear_left_tire').material = carModel.getObjectByName('rear_right_tire').material.clone();
-		carModel.getObjectByName('rear_left_tire').material = carModel.getObjectByName('front_left_tire').material.clone();
-		carModel.getObjectByName('rear_left_tire').material = carModel.getObjectByName('front_right_tire').material.clone();
-		//1.6 : 2.6 = x : 0.074  FORMULA DA IMPLEMENTARE PER VEDERE QUANTO UNA RUOTA E' SGONFIA
-		carModel.getObjectByName('rear_left_tire').material.color.setRGB(0.045,0,0);
-		console.log(carModel.getObjectByName('rear_left_tire')["material"]);
+		carModel.getObjectByName('rear_right_tire').material = carModel.getObjectByName('rear_right_tire').material.clone();
+		carModel.getObjectByName('front_left_tire').material = carModel.getObjectByName('front_left_tire').material.clone();
+		carModel.getObjectByName('front_right_tire').material = carModel.getObjectByName('front_right_tire').material.clone();
+		materials["rear_left_tire"] = carModel.getObjectByName('rear_left_tire').material
+		materials["rear_right_tire"] = carModel.getObjectByName('rear_right_tire').material
+		materials["front_left_tire"] = carModel.getObjectByName('front_left_tire').material
+		materials["front_right_tire"] = carModel.getObjectByName('front_right_tire').material
         scene.add(carModel)
-		//console.log(xen);
-		// carModel = gltf.scene.children[ 0 ];
-		// console.log(carModel);
-		// carModel.getObjectByName( 'body' ).material = bodyMaterial;
-		// carModel.getObjectByName( 'rim_fl' ).material = detailsMaterial;
-		// carModel.getObjectByName( 'rim_fr' ).material = detailsMaterial;
-		// carModel.getObjectByName( 'rim_rr' ).material = detailsMaterial;
-		// carModel.getObjectByName( 'rim_rl' ).material = detailsMaterial;
-		// carModel.getObjectByName( 'trim' ).material = detailsMaterial;
-		// carModel.getObjectByName( 'glass' ).material = glassMaterial;
-		// carModel.getObjectByName( 'glass' ).material = glassMaterial;
-		// wheels.push(
-		// 	carModel.getObjectByName( 'wheel_fl' ),
-		// 	carModel.getObjectByName( 'wheel_fr' ),
-		// 	carModel.getObjectByName( 'wheel_rl' ),
-		// 	carModel.getObjectByName( 'wheel_rr' )
-		// );
-		// shadow
-		/*const mesh = new THREE.Mesh(
-			new THREE.PlaneGeometry( 0.655 * 4, 1.3 * 4 ),
-			new THREE.MeshBasicMaterial( {
-				map: shadow, blending: THREE.MultiplyBlending, toneMapped: false, transparent: true
-			} )
-		);
-		mesh.rotation.x = - Math.PI / 2;
-		mesh.renderOrder = 2;*/
-		//carModel.add( mesh );
-		//scene.add( spotLight );
-		//scene.add( spotLightHelper );
-		//display a cone to help with light
-		//scene.add( carModel );
 	} );
+	setInterval(() => {
+		//loadData(SpeedRpmChart);
+		loadWheelData(wheelChart, false);
+		loadDataOnInterval();
+	}, 1000);
 }
 function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
@@ -181,7 +157,6 @@ function render() {
 	}
 	grid.position.z = -( time ) % 1;
 	renderer.render( scene, camera );
-	stats.update();
 }
 $(() =>{
     init();

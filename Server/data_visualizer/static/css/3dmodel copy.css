@@ -1,36 +1,16 @@
-/* #332f35 */
 body{
-    background-color: #161719;
-}
-#demo{
-    padding: 50px 50px 50px 50px;
-    animation: fadeInAnimation ease 3s;
-    animation-iteration-count: 1;
-    animation-fill-mode: forwards;
-}
-@keyframes fadeInAnimation {
-    0% {
-        opacity: 0;
-    }
-    100% {
-        opacity: 1;
-     }
+    background-color: #332f35;
 }
 #demo h1{
     color: #ff9e7d;
-    font-weight: bold;
-    font-size: 70px;
 }
 #demo p{
     color: #fffdff;
-    font-size: 21px;
-    font-style: italic;
 }
 #container{
     margin: 0;
     overflow: hidden;
     height: 800px;
-    border-radius: 10px;
 }
 .main_div{
     padding-left: 10px;
@@ -76,23 +56,5 @@ ul{
     text-align: left;
 }
 #SpeedRpmChart{
-    padding: 10px 10px 10px 10px;
     height: 700px;
-    margin-top: 36px;
-    /* background-color: #3A363C; */
-    background-color: #212124;
-    border-radius: 10px;
-}
-#wheel-chart{
-    padding: 10px 10px 10px 10px;
-    background-color: #212124;
-    margin-top: 36px;
-    border-radius: 10px;
-    height: 854;
-    width: 426;  
-}
-#try_now{
-    font-size: 30px !important;
-    border-bottom: 3px solid #ff9e7d;
-    width: 171px;
 }

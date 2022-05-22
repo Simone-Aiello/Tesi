@@ -12,7 +12,7 @@
 //    Orbit - left mouse / touch: one-finger move
 //    Zoom - middle mouse, or mousewheel / touch: two-finger spread or squish
 //    Pan - right mouse, or left mouse + ctrl/meta/shiftKey, or arrow keys / touch: two-finger move
-
+let shiftPressed = false;
 THREE.OrbitControls = function ( object, domElement ) {
 
 	this.object = object;
@@ -76,7 +76,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	// Mouse buttons
 	this.mouseButtons = { LEFT: THREE.MOUSE.LEFT, MIDDLE: THREE.MOUSE.MIDDLE, RIGHT: THREE.MOUSE.RIGHT };
-
 	// for reset
 	this.target0 = this.target.clone();
 	this.position0 = this.object.position.clone();
@@ -536,7 +535,6 @@ THREE.OrbitControls = function ( object, domElement ) {
 	}
 
 	function handleKeyDown( event ) {
-
 		//console.log( 'handleKeyDown' );
 
 		// prevent the browser from scrolling on cursor up/down
@@ -563,6 +561,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 			case scope.keys.RIGHT:
 				pan( - scope.keyPanSpeed, 0 );
 				scope.update();
+				break;
+			
+			case 16:
+				shiftPressed = true;
 				break;
 
 		}
@@ -796,7 +798,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	function onMouseWheel( event ) {
 
-		if ( scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) ) return;
+		if ( scope.enabled === false || scope.enableZoom === false || ( state !== STATE.NONE && state !== STATE.ROTATE ) || !shiftPressed ) return;
+
 
 		//event.preventDefault();
 		event.stopPropagation();
@@ -926,7 +929,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 	scope.domElement.addEventListener( 'touchmove', onTouchMove, false );
 
 	window.addEventListener( 'keydown', onKeyDown, false );
-
+	window.addEventListener( 'keyup', (event) =>{
+		if(event.keyCode == 16){
+			shiftPressed = false;
+		}
+	}, false );
 	// force an update at start
 
 	this.update();

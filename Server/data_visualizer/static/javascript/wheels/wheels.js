@@ -3,6 +3,9 @@ let x_labels = {};
 let wheel_sensor = "";
 let sensor_data = [];
 let regressione_line_points = [];
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
 function parseTimestamp(timestamp) {
     let d = new Date(timestamp);
     let month = d.getMonth() + 1;
@@ -37,15 +40,12 @@ function plotData(mis, myChart, line_points, toggle_animation) {
     toggle_animation ? myChart.update() : myChart.update("none");
 }
 function loadWheelData(myChart, toggle_animation) {
-    console.log("Eseguo");
     $.ajax({
         'url': '/rest_api/WheelData',
         'type': 'GET',
         'data': {
             vehicle: "FG868XN",
             wheel: wheel_sensor,
-            //start_date : startDate,
-            //end_date : endDate,
         },
         'success': function (data) {
             let mis = data["data"];
@@ -60,8 +60,8 @@ const data = {
             type: "scatter",
             label: 'Data points',
             data: sensor_data,
-            borderColor: "rgb(50, 101, 252)",
-            backgroundColor: "rgb(50, 101, 252)",
+            borderColor: '#01cbcf',
+            backgroundColor: '#01cbcf',
             order: 1,
             pointRadius: 4,
             pointHoverRadius: 8,
@@ -70,17 +70,34 @@ const data = {
             type: "line",
             label: 'Linear regression',
             data: regressione_line_points,
-            borderColor: "rgb(255, 99, 132)",
-            backgroundColor: "rgb(255, 99, 132)",
+            borderColor: '#fe546f',
+            backgroundColor: '#fe546f',
             order: 2
         }
     ]
 };
-const cfg = {
+//const queryString = window.location.search;
+//const urlParams = new URLSearchParams(queryString);
+//wheel_sensor = urlParams.get('wheel') != null ? urlParams.get('wheel') : "";
+wheel_sensor = "front_left_wheel_pressure";
+let title = capitalizeFirstLetter(wheel_sensor != null ? wheel_sensor : "");
+let splitted_title = title.split("_");
+var wheelConfig = {
     data: data,
     options: {
         responsive: true,
         plugins: {
+            title: {
+                display: true,
+                text: splitted_title.join(" "),
+                color: "#fffdff",
+            },
+            legend: {
+                labels: {
+                    color: "#fffdff",
+                },
+                position: 'top',
+            },
             tooltip: {
                 callbacks: {
                     footer: (tooltipItems) => {
@@ -92,9 +109,6 @@ const cfg = {
                         return "Date: " + date;
                     },
                 }
-            },
-            legend: {
-                position: 'top',
             },
         },
         scales: {
@@ -108,12 +122,17 @@ const cfg = {
                         style: 'normal',
                         lineHeight: 1.2
                     },
+                    color: "#fffdff",
+                },
+                grid: {
+                    borderColor: "#fffdff",
+                    display: false,
                 },
                 ticks: {
-                    // Include a dollar sign in the ticks
                     callback: function (value, index, ticks) {
                         return parseTimestamp(value);
-                    }
+                    },
+                    color: '#fffdff',
                 },
             },
             y: {
@@ -126,19 +145,24 @@ const cfg = {
                         style: 'normal',
                         lineHeight: 1.2
                     },
+                    color: "#fffdff",
                 },
+                grid: {
+                    borderColor: "#fffdff",
+                    display: false,
+                },
+                ticks: {
+                    color: '#fffdff',
+                }
             }
         },
     },
 };
 $(function () {
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    wheel_sensor = urlParams.get('wheel') != null ? urlParams.get('wheel') : "";
     // @ts-expect-error
-    const myChart = new Chart($("#wheel-chart"), cfg);
-    loadWheelData(myChart, true);
-    let interval = setInterval(() => {
-        loadWheelData(myChart, false);
-    }, 3000);
+    // const wheelChart = new Chart($("#wheel-chart"), wheelConfig);
+    // loadWheelData(wheelChart, true);
+    // let interval = setInterval(() =>{
+    //     loadWheelData(wheelChart,false);
+    // },3000)
 });

@@ -13,23 +13,37 @@ const plotting_data = {
     datasets: [{
             label: 'Not anomalous',
             data: chart_not_anomalous_data,
-            backgroundColor: 'rgb(50, 101, 252)',
+            //backgroundColor: 'rgb(50, 101, 252)',
+            backgroundColor: '#01cbcf',
             pointRadius: 5,
             pointHoverRadius: 10,
         },
         {
             label: 'Anomalous',
             data: chart_anomalous_data,
-            backgroundColor: 'rgb(255, 99, 132)',
+            //backgroundColor: 'rgb(255, 99, 132)',
+            backgroundColor: '#fe546f',
             pointRadius: 5,
             pointHoverRadius: 10,
         }
     ],
 };
-const config = {
+const SpeedRpmConfig = {
     type: 'scatter',
     data: plotting_data,
     options: {
+        plugins: {
+            title: {
+                display: true,
+                text: 'Engine Speed and RPM',
+                color: "#fffdff",
+            },
+            legend: {
+                labels: {
+                    color: "#fffdff",
+                }
+            },
+        },
         scales: {
             x: {
                 type: 'linear',
@@ -43,7 +57,15 @@ const config = {
                         style: 'normal',
                         lineHeight: 1.2
                     },
+                    color: "#fffdff",
                 },
+                grid: {
+                    borderColor: "#fffdff",
+                    display: false,
+                },
+                ticks: {
+                    color: '#fffdff',
+                }
             },
             y: {
                 title: {
@@ -55,6 +77,14 @@ const config = {
                         style: 'normal',
                         lineHeight: 1.2
                     },
+                    color: "#fffdff",
+                },
+                grid: {
+                    borderColor: "#fffdff",
+                    display: false,
+                },
+                ticks: {
+                    color: '#fffdff',
                 },
             }
         },
@@ -104,9 +134,9 @@ function graphData(chart, data) {
         }
     }
     // @ts-expect-error
-    toggleAnimation ? chart.update() : chart.update("none");
+    chart.update("none");
 }
-function loadData(myChart) {
+function loadData(SpeedRpmChart) {
     console.log("Eseguo");
     $.ajax({
         'url': '/rest_api/VehicleData',
@@ -118,7 +148,7 @@ function loadData(myChart) {
             end_date: endDate,
         },
         'success': function (data) {
-            graphData(myChart, data);
+            graphData(SpeedRpmChart, data);
             toggleAnimation = false;
         },
         'error': function (request, error) {
@@ -142,17 +172,17 @@ function dateEventHandlers(chart) {
         clearInterval(interval);
         toggleAnimation = true;
         loadData(chart);
-        interval = setInterval(() => {
-            loadData(chart);
-        }, 3000);
+        // interval = setInterval(() =>{
+        //     loadData(chart);
+        // },3000);
     });
 }
 $(function () {
     // @ts-expect-error
-    const myChart = new Chart($("#SpeedRpmChart"), config);
-    loadData(myChart);
-    dateEventHandlers(myChart);
-    interval = setInterval(() => {
-        loadData(myChart);
-    }, 3000);
+    //const SpeedRpmChart = new Chart($("#SpeedRpmChart"), SpeedRpmConfig);
+    //loadData(SpeedRpmChart);
+    dateEventHandlers(SpeedRpmChart);
+    // interval = setInterval(() =>{
+    //     loadData(myChart);
+    // },3000);
 });

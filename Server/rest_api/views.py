@@ -71,7 +71,7 @@ class VehicleDataAPIView(APIView):
             model = LinearRegression()
         else:
             try:
-                res = Measurement.objects.filter(data=max_bar,sensor=measurement["sensor"],vehicle=measurement["vehicle"]).values().latest("timestamp","id")
+                res = Measurement.objects.filter(data=max_bar,sensor=measurement["sensor"],vehicle=measurement["vehicle"]).values().latest("id","timestamp")
                 last_id = res["id"]
                 all_data = Measurement.objects.filter(sensor=measurement["sensor"],vehicle=measurement["vehicle"],id__gte=last_id)
                 for d in all_data:
@@ -92,12 +92,10 @@ class VehicleDataAPIView(APIView):
                 joblib.dump(value=model,filename=filename,compress=9)
 
     def get(self, request : HttpRequest):
-        #print(request.GET)
         requested_sensors = request.GET.getlist("sensor[]")
         requested_vehicle = request.GET.get("vehicle")
         start_date = request.GET.get("start_date","")
         end_date = request.GET.get("end_date","")
-        latest = request.GET.get("latest",False)
         query = Q()
         query &= Q(sensor__in=requested_sensors,vehicle=requested_vehicle)
         if start_date != "":
@@ -105,9 +103,6 @@ class VehicleDataAPIView(APIView):
         if end_date != "":
             query &= Q(timestamp__lte=end_date)
         data = Measurement.objects.filter(query)
-        if latest and len(requested_sensors) == 1:
-            data = data.values().latest("timestamp")
-            return JsonResponse(data)
         serializer = MeasurementSerializer(data,many = True) 
         return Response(serializer.data)
         
@@ -149,7 +144,7 @@ class WheelApiView(APIView):
         
         #Getting data from the db since the last wheel inflate
         try:
-            res = Measurement.objects.filter(data=max_bar,sensor=sensor).values().latest("timestamp","id")
+            res = Measurement.objects.filter(data=max_bar,sensor=sensor).values().latest("id","timestamp")
             last_id = res["id"]
             all_data = Measurement.objects.filter(sensor=sensor,id__gte=last_id)
             serializer = MeasurementSerializer(all_data,many=True)
@@ -163,3 +158,18 @@ class WheelApiView(APIView):
             model : LinearRegression = joblib.load(filename)
             line_points = self.__calculate_line_points(max_bar=max_bar,slope=model.coef_[0][0],intercept=model.intercept_[0])
         return Response({"data": serializer.data,"line_points":line_points}, status=status.HTTP_200_OK)
+    
+class LatestCarData(APIView):
+    
+    #If license_plate is specified as a GET parameters return only one vehicle, otherwise returns all
+    def get(self, request):
+        values = {}
+        requested_sensors = request.GET.getlist("sensor[]")
+        print(requested_sensors)
+        for sensor in requested_sensors:
+            try:
+                val = Measurement.objects.filter(sensor=sensor).values().latest("id","timestamp")
+                values[sensor] = val
+            except Measurement.DoesNotExist: 
+                val[sensor] = None
+        return JsonResponse(values)
