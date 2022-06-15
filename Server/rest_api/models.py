@@ -10,7 +10,7 @@ class Vehicle(models.Model):
 
 class Measurement(models.Model):
 
-    #enum types
+    #Enum types
     class Sensors(models.TextChoices):
         RPM = "rpm"
         SPEED = "speed"
@@ -22,10 +22,15 @@ class Measurement(models.Model):
         ENGINE_FUEL_GAUGE = "fuel_rail_gauge"
         INTAKE_AIR_TEMPERATURE = "intake_air_temperature"
         INTAKE_MANIFOLD_PRESSURE = "intake_manifold_pressure"
+        FRONT_RIGHT_WHEEL_PRESSURE = "front_right_wheel_pressure"
+        FRONT_LEFT_WHEEL_PRESSURE = "front_left_wheel_pressure"
+        REAR_RIGHT_WHEEL_PRESSURE = "rear_right_wheel_pressure"
+        REAR_LEFT_WHEEL_PRESSURE = "rear_left_wheel_pressure"
     
     
-    #pk created by default as auto-increment value
+    #Pk created by default as auto-increment value
     vehicle = models.ForeignKey(Vehicle,on_delete=models.RESTRICT)
-    sensor = models.CharField(choices=Sensors.choices, max_length=25)
-    data = models.IntegerField()
+    sensor = models.CharField(choices=Sensors.choices, max_length=26)
+    data = models.DecimalField(max_digits=12,decimal_places=2)
     timestamp = models.DateTimeField()
+    anomalous = models.BooleanField(default=False)

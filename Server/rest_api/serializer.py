@@ -21,4 +21,5 @@ class MeasurementSerializer(serializers.ModelSerializer):
                 "sensor",
                 "data",
                 "timestamp",
+                "anomalous",
             ]
