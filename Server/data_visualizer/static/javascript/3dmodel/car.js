@@ -8,6 +8,7 @@ let latestUpdate = {};
 var carModel = undefined;
 var raycaster = new THREE.Raycaster();
 var mousePointer = new THREE.Vector2();
+var live_update = false;
 function capitalizeFirstLetter(string) {
 	return string.charAt(0).toUpperCase() + string.slice(1);
 }
@@ -67,7 +68,7 @@ var wheelChart = null;
 function init() {
 
 	SpeedRpmChart = new Chart($("#SpeedRpmChart"), SpeedRpmConfig);
-    loadData(SpeedRpmChart);
+	liveRpmSpeedUpdate(SpeedRpmChart,"","")
 	wheelChart = new Chart($("#wheel-chart"), wheelConfig);
     loadWheelData(wheelChart, true);
 	//Boilerplate code to render the scene
@@ -142,7 +143,16 @@ function init() {
 		//loadData(SpeedRpmChart);
 		loadWheelData(wheelChart, false);
 		loadDataOnInterval();
+		if(live_update){
+			liveRpmSpeedUpdate(SpeedRpmChart,new Date().toISOString(),"");
+		}
 	}, 1000);
+	$("#live_update").on("change",function (){
+		if(!this.checked){
+			liveRpmSpeedUpdate(SpeedRpmChart,"","")
+		}
+		live_update = this.checked;
+	})
 }
 function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;

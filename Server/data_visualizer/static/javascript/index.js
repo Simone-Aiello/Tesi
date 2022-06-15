@@ -136,8 +136,7 @@ function graphData(chart, data) {
     // @ts-expect-error
     chart.update("none");
 }
-function loadData(SpeedRpmChart) {
-    console.log("Eseguo");
+function liveRpmSpeedUpdate(SpeedRpmChart,startDate,endDate) {
     $.ajax({
         'url': '/rest_api/VehicleData',
         'type': 'GET',
@@ -159,19 +158,18 @@ function loadData(SpeedRpmChart) {
 function dateEventHandlers(chart) {
     $("#start-date").on("change", function (e) {
         startDate = String($("#start-date").val());
-        console.log(startDate);
         clearInterval(interval);
         toggleAnimation = true;
-        loadData(chart);
+        liveRpmSpeedUpdate(chart);
         interval = setInterval(() => {
-            loadData(chart);
+            liveRpmSpeedUpdate(chart);
         }, 3000);
     });
     $("#end-date").on("change", function (e) {
         endDate = String($("#end-date").val());
         clearInterval(interval);
         toggleAnimation = true;
-        loadData(chart);
+        liveRpmSpeedUpdate(chart);
         // interval = setInterval(() =>{
         //     loadData(chart);
         // },3000);
